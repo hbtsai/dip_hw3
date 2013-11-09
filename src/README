@@ -19,11 +19,13 @@ LIBS= -lm
 
 p1_SOURCES=dip_p1.c
 p2_SOURCES=dip_p2.c
+p3_SOURCES=dip_p3.c
 
 p1_OBJS=$(p1_SOURCES:.c=.o)
 p2_OBJS=$(p2_SOURCES:.c=.o)
+p3_OBJS=$(p3_SOURCES:.c=.o)
 
-all: help dip_p1 dip_p2
+all: help dip_p1 dip_p2 dip_p3
 
 dip_p1: $(p1_OBJS)
 	@echo "    LOG: compiling problem 1"
@@ -32,6 +34,10 @@ dip_p1: $(p1_OBJS)
 dip_p2: $(p2_OBJS)
 	@echo "    LOG: compiling problem 2"
 	$(CC) $(CFLAGS) -o dip_p2 $(p2_OBJS) $(LIBS)
+
+dip_p3: $(p3_OBJS)
+	@echo "    LOG: compiling problem 3"
+	$(CC) $(CFLAGS) -o dip_p3 $(p3_OBJS) $(LIBS)
 
 help:
 	@echo "-------- USAGE INSTRUCTION --------"
@@ -43,10 +49,12 @@ help:
 	@echo "-------- INSTRUCTION   END --------"
 
 run: 
-	@echo "    LOG: executing problem 1: ./dip_p1 sample1.raw"
-	./dip_p1 sample1.raw
-	@echo "    LOG: executing problem 2: ./dip_p2 sample2.raw"
-	./dip_p2 sample2.raw
+#	@echo "    LOG: executing problem 1: ./dip_p1 sample1.raw"
+#	./dip_p1 circle.raw
+	@echo "    LOG: executing problem 2: ./dip_p2"
+	./dip_p2
+	@echo "    LOG: executing problem 3: ./dip_p3 sample2.raw"
+	./dip_p3 texture_color.raw
 
 .cpp.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< 

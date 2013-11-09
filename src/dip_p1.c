@@ -23,375 +23,6 @@ int write_pgm_image(char* filename, int x_dim, int y_dim, unsigned char* image)
 	}
 }
 
-
-static const int kernel25[25]={ 2, 4, 5, 4, 2,
-							 4, 9, 12, 9, 4,
-							 5, 12, 15, 12, 5,
-							 4, 9, 12, 9, 4, 
-							 2, 4, 5, 4, 2 };
-
-int gaussian_filter(int w_size, int width, int height, unsigned char* image, unsigned char* image_r)
-{
-	int idx=0;
-	int value=0;
-	int pix=0;
-	int x=0, y=0, x2=0, y2=0;
-	for(x=0; x<height; x++)
-	{
-		for(y=0; y<width; y++)
-		{
-			idx=0;
-			value=0;
-
-			for(x2=x-(w_size-1)/2; x2<=x+(w_size-1)/2; x2++)
-			{
-				for(y2=y-(w_size-1)/2; y2<=y+(w_size-1)/2; y2++)
-				{
-					pix = (int)image[x2*width+y2];
-					pix *= kernel25[idx];
-					value += pix;
-					idx++;
-				}
-			}
-
-			image_r[x*width+y] = value/159;
-
-		}
-	}
-
-	return 0;
-}
-
-void row_gradient(int width, int height, unsigned char* image, unsigned char* image_r, int* row_v)
-{
-	int i =0, j=0;
-	int K=2;
-	int A0=0;
-	int A1=0;
-	int A2=0;
-	int A3=0;
-	int A4=0;
-	int A5=0;
-	int A6=0;
-	int A7=0;
-	int min=0;
-	for(i = 0; i<height; i++)
-	{
-		for(j =0; j<width; j++)
-		{
-
-			if(i==0 || j==0 || i==(width-1) || j==(height-1))
-			{
-				A0 = image[ i*width + j ];
-				A1 = image[ i*width + j ];
-				A2 = image[ i*width + j ];
-				A3 = image[ i*width + j ];
-				A4 = image[ i*width + j ];
-				A5 = image[ i*width + j ];
-				A6 = image[ i*width + j ];
-				A7 = image[ i*width + j ];
-			}
-			else
-			{
-				A0 = image[ (i-1)*width + (j-1)];
-				A1 = image[ (i-1)*width + j ];
-				A2 = image[ (i-1)*width + (j+1) ];
-				A3 = image[ (i)*width + (j+1)];
-				A4 = image[ (i+1)*width + (j+1) ];
-				A5 = image[ (i+1)*width + (j) ];
-				A6 = image[ (i+1)*width + (j-1) ];
-				A7 = image[ (i)*width + (j-1) ];
-			}
-
-			/*
-			if(( ( (A0+K*A1+A2) - (A6+K*A5+A4) ) / (K+2)) < min)
-				min = ( ( (A0+K*A1+A2) - (A6+K*A5+A4) ) / (K+2)) ;
-			*/
-
-			row_v[i*width+j] = (( (A2+K*A3+A4) - (A0+K*A7+A6) ) / (K+2));
-			image_r[i*width+j] =(( (A2+K*A3+A4) - (A0+K*A7+A6) ) / (K+2)) + 128;
-		}
-	}
-
-}
-
-void column_gradient(int width, int height, unsigned char* image, unsigned char* image_r, int* col_v)
-{
-	int i =0, j=0;
-	int K=2;
-	int A0=0;
-	int A1=0;
-	int A2=0;
-	int A3=0;
-	int A4=0;
-	int A5=0;
-	int A6=0;
-	int A7=0;
-	int min = 0;
-	for(i = 0; i<height; i++)
-	{
-		for(j =0; j<width; j++)
-		{
-
-			if(i==0 || j==0 || i==(width-1) || j==(height-1))
-			{
-				A0 = image[ i*width + j ];
-				A1 = image[ i*width + j ];
-				A2 = image[ i*width + j ];
-				A3 = image[ i*width + j ];
-				A4 = image[ i*width + j ];
-				A5 = image[ i*width + j ];
-				A6 = image[ i*width + j ];
-				A7 = image[ i*width + j ];
-			}
-			else
-			{
-				A0 = image[ (i-1)*width + (j-1)];
-				A1 = image[ (i-1)*width + j ];
-				A2 = image[ (i-1)*width + (j+1) ];
-				A3 = image[ (i)*width + (j+1)];
-				A4 = image[ (i+1)*width + (j+1) ];
-				A5 = image[ (i+1)*width + (j) ];
-				A6 = image[ (i+1)*width + (j-1) ];
-				A7 = image[ (i)*width + (j-1) ];
-			}
-
-			/*
-			if(( ( (A0+K*A1+A2) - (A6+K*A5+A4) ) / (K+2)) < min)
-				min = ( ( (A0+K*A1+A2) - (A6+K*A5+A4) ) / (K+2)) ;
-			*/
-
-			col_v[i*width+j] = ( ( (A0+K*A1+A2) - (A6+K*A5+A4) ) / (K+2)) ;
-			image_r[i*width+j] = ( ( (A0+K*A1+A2) - (A6+K*A5+A4) ) / (K+2)) + 128;
-		}
-	}
-}
-
-
-void gradient(int width, int height, int* row_g, int* col_g, unsigned char* image_r)
-{
-	int i=0, j=0;
-	for(i = 0; i<height; i++)
-		for(j =0; j<width; j++)
-			image_r[i*width+j] = sqrt(pow(row_g[i*width+j], 2)+ pow(col_g[i*width+j], 2));
-}
-
-void orientation(int width, int height, int* row_g, int* col_g, int* atan_g)
-{
-	int i=0, j=0;
-	int min = 0;
-	int max = 255;
-	double *atan_r = calloc(sizeof(double), width*height);
-	for(i = 0; i<height; i++)
-		for(j =0; j<width; j++)
-			atan_g[i*width+j] = (int)(atan2(col_g[i*width+j], row_g[i*width+j])/M_PI*180);
-
-}
-
-void supress(int width, int height, int* atan_g, unsigned char* image, unsigned char* image_r)
-{
-	int i=0, j=0;
-	for(i =0; i<height; i++)
-	{
-		for(j=0; j<width; j++)
-		{
-
-
-			//if(abs(atan_g[i*width+j])<6 || (180-abs(atan_g[i*width+j]))<6 )
-			if(abs(atan_g[i*width+j])<22.5 || (180-abs(atan_g[i*width+j]))<22.5 )
-			{
-				/* compare horizontally*/
-				if(j==0 || j==255)
-					continue;
-
-				if(image[i*width+j] > image[i*width+(j-1)] && image[i*width+j] > image[i*width+(j+1)] )
-					image_r[i*width+j] = image[i*width+j];
-				else
-					image_r[i*width+j] = 0;
-
-				continue;
-			}
-
-			//if(abs(abs(atan_g[i*width+j])-90) < 29)
-			if(abs(abs(atan_g[i*width+j])-90) < 22.5)
-			{
-				/* compare vertically*/
-				if(i==0 || i==255)
-					continue;
-
-				if(image[i*width+j] > image[(i-1)*width+j] && image[i*width+j] > image[(i+1)*width+j] )
-					image_r[i*width+j] = image[i*width+j];
-				else
-					image_r[i*width+j] = 0;
-
-				continue;
-			}
-
-			if(atan_g[i*width+j]>0)
-			{
-				//if(abs(atan_g[i*width+j]-32)<29)
-				if(abs(atan_g[i*width+j]-45)<22.5)
-				{
-					/*compare right-up to left-down*/
-					if((i==0 && j==255) || (i==255 && j==0))
-						continue;
-
-					if(image[i*width+j] > image[(i-1)*width+(j+1)] && image[i*width+j] > image[(i+1)*width+(j-1)] )
-						image_r[i*width+j] = image[i*width+j];
-					else
-						image_r[i*width+j] = 0;
-
-					continue;
-				}
-
-				//if(abs(atan_g[i*width+j]-148)<29)
-				if(abs(atan_g[i*width+j]-135)<22.5)
-				{
-					/*compare left-up to right-down*/
-					if((i==0 && j==0) || (i==255 && j==255))
-						continue;
-
-					if(image[i*width+j] > image[(i-1)*width+(j-1)] && image[i*width+j] > image[(i+1)*width+(j+1)] )
-						image_r[i*width+j] = image[i*width+j];
-					else
-						image_r[i*width+j] = 0;
-
-					continue;
-				}
-			}
-			else
-			{
-				//if(abs(abs(atan_g[i*width+j])-32)<29)
-				if(abs(abs(atan_g[i*width+j])-45)<22.5)
-				{
-					/*compare left-up to right-down*/
-					if((i==0 && j==0) || (i==255 && j==255))
-						continue;
-
-					if(image[i*width+j] > image[(i-1)*width+(j-1)] && image[i*width+j] > image[(i+1)*width+(j+1)] )
-						image_r[i*width+j] = image[i*width+j];
-					else
-						image_r[i*width+j] = 0;
-
-					continue;
-				}
-
-			//	if(abs(abs(atan_g[i*width+j])-148)<29)
-				if(abs(abs(atan_g[i*width+j])-135)<22.5)
-				{
-					/*compare right-up to left-down*/
-					if((i==0 && j==255) || (i==255 && j==0))
-						continue;
-
-					if(image[i*width+j] > image[(i-1)*width+(j+1)] && image[i*width+j] > image[(i+1)*width+(j-1)] )
-						image_r[i*width+j] = image[i*width+j];
-					else
-						image_r[i*width+j] = 0;
-
-					continue;
-				}
-			}
-
-			
-
-		
-		}
-	}
-}
-
-void double_thresholding(int width, int height, unsigned char* image, int TH, int TL)
-{
-	int i=0, j=0;
-//	int TH=17, TL=5;
-	for(i=0; i<height; i++)
-	{
-		for(j=0; j<width; j++)
-		{
-			if(image[i*width+j]>TH)
-				image[i*width+j]=255;
-			else if(image[i*width+j]>TL)
-				image[i*width+j]=128;
-			else
-				image[i*width+j]=0;
-		}
-	}
-}
-
-int decrease_brightness(int x, int y, unsigned char* image)
-{
-	int i=0; 
-	for(i=0; i<x*y; i++)
-		image[i]/=2;
-	return 0;
-}
-
-int histogram_equalizer(int x, int y, unsigned char* image)
-{
-	/* create histogram */
-	double histogram[256]={};
-	int i=0;
-	for(i=0; i<x*y; i++)
-		histogram[image[i]]++;
-
-	/* convert histogram to percentage (0-1) */
-	for(i=0; i<256; i++)
-		histogram[i]/=65536;
-
-	/* cumulative histogram */
-	for(i=0; i<256; i++)
-		histogram[i]+=histogram[i-1];
-
-	/* convert back to dynamic range 0-255 */
-	for(i=0; i<256; i++)
-		histogram[i]=(histogram[i]*254)+0.5;
-
-	/* assign back using new histogram */
-	for(i=0; i<x*y; i++)
-		image[i]=histogram[image[i]];
-
-	return 0;
-}
-
-int local_histogram_equalizer(int w_size, int width, int height, 
-		int x, int y, unsigned char* image, unsigned char* image_r)
-{
-	// assume grayscale
-	double histo[256]={};
-	int i=0, x2=0, y2=0;
-	for( i=0; i<256; i++)
-		histo[i]=0;
-
-	int pixels=0;
-	for(x2= x-(w_size-1)/2; x2 <= x+(w_size-1)/2; x2++)
-	{
-		for(y2= y-(w_size-1)/2; y2 <= y+(w_size-1)/2; y2++)
-		{
-			if(x2<0 || y2<0 || x2>=width || y2>=height)
-				continue;
-
-			histo[image[x2*width+y2]]++;
-			pixels++;
-		}
-	}
-
-	/* convert histogram to percentage (0-1) */
-	for(i=0; i<256; i++)
-		histo[i]/=pixels;
-
-	/* cumulative histogram */
-	for(i=0; i<256; i++)
-		histo[i]+=histo[i-1];
-
-	/* convert back to dynamic range 0-255 */
-	for(i=0; i<256; i++)
-		histo[i]=histo[i]*255;
-
-	/* assign back using new histogram */
-	image_r[x*width+y]=histo[image[x*width+y]];
-	return 0;
-
-}
-
 int paint_histogram(int width, int height, unsigned char* image, char* filename)
 {
 
@@ -419,13 +50,6 @@ int paint_histogram(int width, int height, unsigned char* image, char* filename)
 			histoimg[i*256+j]=238;
 		}
 
-		/*
-		if(histo[i]>200)
-		{
-			fprintf(stderr, " pixel value %d is major\n", i);
-		}
-		*/
-
 	}
 
 	write_pgm_image(filename, 256, 256, histoimg);
@@ -435,277 +59,160 @@ int paint_histogram(int width, int height, unsigned char* image, char* filename)
 }
 
 
-int convert_to_black_n_white(int threshold, int width, int height, unsigned char* image)
+unsigned char erode_filter[9]={ 1, 1, 1,
+								1, 1, 1,
+	     					    1, 1, 1 };
+
+/* 3x3 filter, make sure image is not at boundary */
+int compare(int x, int y, int width, unsigned char* image, unsigned char* filter, int type)
 {
-	int i=0;
-	for(i=0; i<width*height; i++)
+	int f_width=3;
+	int ret = 0;
+	int xc=image[x*width+(y)];
+	int x0=image[x*width+(y+1)];
+	int x1=image[(x-1)*width+(y+1)];
+	int x2=image[(x-1)*width+y];
+	int x3=image[(x-1)*width+(y-1)];
+	int x4=image[x*width+(y-1)];
+	int x5=image[(x+1)*width+(y-1)];
+	int x6=image[(x+1)*width+y];
+	int x7=image[(x+1)*width+(y+1)];
+
+	int mc=255*erode_filter[ 1*f_width+   (1)];
+	int m0=255*erode_filter[ 1*f_width+   (1+1)];
+	int m1=255*erode_filter[(1-1)*f_width+(1+1)];
+	int m2=255*erode_filter[(1-1)*f_width+ 1];
+	int m3=255*erode_filter[(1-1)*f_width+(1-1)];
+	int m4=255*erode_filter[ 1*f_width+   (1-1)];
+	int m5=255*erode_filter[(1+1)*f_width+(1-1)];
+	int m6=255*erode_filter[(1+1)*f_width+ 1];
+	int m7=255*erode_filter[(1+1)*f_width+(1+1)];
+
+	if(type)
 	{
-		if(image[i]>=threshold)
-			image[i]=255;
+		if(xc==mc && x0==m0 && 
+		   x1==m1 && x2==m2 &&  
+		   x3==m3 && x4==m4 && 
+		   x5==m5 && x6==m6 && 
+		   x7==m7)
+			ret = 1;
 		else
-			image[i]=0;
+			ret = 0;
+
+		if(!x0 && !x1 && !x2 && !x3 && !x4 && !x5 && !x6 && !x7 && xc )
+			ret =1;
+
+		if(xc && x0 && x1 && x2 && !x3 && !x4 && !x5 && !x6 && !x7)
+			ret = 1;
+
+		if(xc && x7 && !x6 && !x2 && !x0 && !x3 && !x5 && !x1 && !x4)
+			ret = 1;
+
 	}
-	return 0;
+	else
+	{
+		if(xc!=mc && x0!=m0 && 
+		   x1!=m1 && x2!=m2 &&  
+		   x3!=m3 && x4!=m4 && 
+		   x5!=m5 && x6!=m6 && 
+		   x7!=m7)
+			ret = 0;
+		else
+			ret = 1;
+	}
+
+	return ret;
 }
 
-void connected(int width, int height, unsigned char* image)
+
+/* type=1: erosion, type=0: dilation*/
+void erosion(int width, int height, unsigned char* image, unsigned char* image_r, int type)
 {
 	int i=0, j=0;
-	int p0=0, p1=0 ,p2=0,p3=0,p4=0,p5=0,p6=0,p7=0;
-
-	int changed = 1;
-	while(changed)
-	{
-		changed = 0;
-		for(i=0; i<height; i++)
-		{
-			for(j=0; j<width; j++)
-			{
-				if(i==0 || i==255 || j==0 || j==255)
-					continue;
-	
-				p0 = image[(i-1)*width+(j-1)];
-				p1 = image[(i-1)*width+(j)];
-				p2 = image[(i-1)*width+(j+1)];
-				p3 = image[(i)*width+(j+1)];
-				p4 = image[(i+1)*width+(j+1)];
-				p5 = image[(i+1)*width+(j)];
-				p6 = image[(i+1)*width+(j-1)];
-				p7 = image[(i)*width+(j-1)];
-	
-				if(image[i*width+j]==255)
-				{
-					if(p0==128)
-					{
-						changed = 1;
-						image[(i-1)*width+(j-1)]=255;
-					}
-					if(p1==128)
-					{
-						changed=1;
-						image[(i-1)*width+(j)]=255;
-					}
-					if(p2==128)
-					{
-						changed=1;
-						image[(i-1)*width+(j+1)]=255;
-					}
-					if(p3==128)
-					{
-						changed=1;
-						image[(i)*width+(j+1)]=255;
-					}
-					if(p4==128)
-					{
-						changed =1;
-						image[(i+1)*width+(j+1)]=255;
-					}
-					if(p5==128)
-					{
-						changed =1;
-						image[(i+1)*width+(j)]=255;
-					}
-					if(p6==128)
-					{
-						changed=1;
-						image[(i+1)*width+(j-1)]=255;
-					}
-					if(p7==128)
-					{
-						changed=1;
-						image[(i)*width+(j-1)]=255;
-					}
-					
-				}
-			}
-		}
-		if(changed)
-		{
-			for(i=width-1; i>0; i--)
-			{
-				for(j=height-1; j>0; j--)
-				{
-					p0 = image[(i-1)*width+(j-1)];
-					p1 = image[(i-1)*width+(j)];
-					p2 = image[(i-1)*width+(j+1)];
-					p3 = image[(i)*width+(j+1)];
-					p4 = image[(i+1)*width+(j+1)];
-					p5 = image[(i+1)*width+(j)];
-					p6 = image[(i+1)*width+(j-1)];
-					p7 = image[(i)*width+(j-1)];
-
-				if(image[i*width+j]==255)
-				{
-					if(p0==128)
-					{
-						changed = 1;
-						image[(i-1)*width+(j-1)]=255;
-					}
-					if(p1==128)
-					{
-						changed=1;
-						image[(i-1)*width+(j)]=255;
-					}
-					if(p2==128)
-					{
-						changed=1;
-						image[(i-1)*width+(j+1)]=255;
-					}
-					if(p3==128)
-					{
-						changed=1;
-						image[(i)*width+(j+1)]=255;
-					}
-					if(p4==128)
-					{
-						changed =1;
-						image[(i+1)*width+(j+1)]=255;
-					}
-					if(p5==128)
-					{
-						changed =1;
-						image[(i+1)*width+(j)]=255;
-					}
-					if(p6==128)
-					{
-						changed=1;
-						image[(i+1)*width+(j-1)]=255;
-					}
-					if(p7==128)
-					{
-						changed=1;
-						image[(i)*width+(j-1)]=255;
-					}
-
-				}
-
-			}
-	
-			}
-		}
-	}
-
-	for(i=0; i<height; i++)
-	{
-		for(j=0; j<width; j++)
-		{
-			if(image[i*width+j]==128)
-				image[i*width+j]=0;
-		}
-	}
-}
-
-
-static const int LoG[25]={ 0, 0, -1, 0, 0,
-						   0, -1, -2, -1, 0,
-						   -1, -2, 16, -2, -1,
-						   0, -1, -2, -1, 0,
-						   0, 0, -1, 0, 0
-							};
-
-void laplacian(int w_size, int width, int height, 
-		unsigned char* image, unsigned char* image_r, int* val_t)
-{
-	int idx=0;
-	int value=0;
 	int pix=0;
-	int min=0;
-	int max=255;
-//	int val_t[Size*Size]={};
-	int x=0, y=0, x2=0, y2=0;
-	for(x=0; x<width; x++)
-	{
-		for(y=0; y<height; y++)
-		{
-			idx=0;
-			value=0;
-
-			for(x2=x-(w_size-1)/2; x2<=x+(w_size-1)/2; x2++)
-			{
-				for(y2=y-(w_size-1)/2; y2<=y+(w_size-1)/2; y2++)
-				{
-					pix = (int)image[x2*width+y2];
-					pix *= LoG[idx];
-					value += pix;
-					idx++;
-				}
-			}
-
-			if(value<min)
-				min=value;
-
-			if(value>max)
-				max=value;
-
-			val_t[x*width+y]=value;
-		}
-	}
-
-	max += abs(min);
-
-	for(x=0; x<width; x++)
-		for(y=0; y<width; y++)
-			image_r[x*width+y]=((val_t[x*width+y]+abs(min)))*255/max;
-}
-
-void thresh_lap(int width, int height, unsigned char* image, unsigned char* image_r, int thresh_up, int thresh_low)
-{
-	/* majority value of lap pixels are 175-207, mid: 186, thresh: 11*/
-	int i=0, j=0;
 	for(i=0; i<height; i++)
 	{
 		for(j=0; j<width; j++)
 		{
-			if(image[i*width+j]>thresh_up)
-				image_r[i*width+j]=0;
-			else if(image[i*width+j]<thresh_low)
-				image_r[i*width+j]=0;
-			else
+			if((i-1)<0 || (j-1)<0 || (i+1)>=width || (j+1)>=height)
+				continue;
+
+			pix = compare (i, j, width, image, erode_filter, type);
+
+			if(pix)
 				image_r[i*width+j]=255;
+			else
+				image_r[i*width+j]=0;
+
 		}
 	}
 }
 
-void zero_crossing(int width, int height, int* val_t, unsigned char* image, unsigned char * image_r)
+// analysis 3x3 patch
+void dfs(int x, int y, int width, unsigned char* patch, int color)
 {
-	int i=0, j=0;
-	int p0=0;
-	int p1=0;
-	int p2=0;
-	int p3=0;
-	int p4=0;
-	int p5=0;
-	int p6=0;
-	int p7=0;
-	for(i=0; i<height; i++)
+	int pc=0,p0=0,p1=0,p2=0,p3=0,p4=0,p5=0,p6=0,p7=0;
+
+	pc=patch[x*width+(y)];
+	p0=patch[x*width+(y+1)];
+	p1=patch[(x-1)*width+(y+1)];
+	p2=patch[(x-1)*width+y];
+	p3=patch[(x-1)*width+(y-1)];
+	p4=patch[x*width+(y-1)];
+	p5=patch[(x+1)*width+(y-1)];
+	p6=patch[(x+1)*width+y];
+	p7=patch[(x+1)*width+(y+1)];
+
+	// set center color first
+	if(pc==255)
 	{
-		for(j=0; j<width; j++)
-		{
-			if(image[i*width+j]==0)
-			{
-				p0 = val_t[(i-1)*width+(j-1)];
-				p1 = val_t[(i-1)*width+(j)];
-				p2 = val_t[(i-1)*width+(j+1)];
-				p3 = val_t[(i)*width+(j+1)];
-				p4 = val_t[(i+1)*width+(j+1)];
-				p5 = val_t[(i+1)*width+(j)];
-				p6 = val_t[(i+1)*width+(j-1)];
-				p7 = val_t[(i)*width+(j-1)];
-
-				if( ((p0<0&&p4>0) || (p0>0&&p4<0)) ||
-					((p7<0&&p3>0) || (p7>0&&p3<0)) ||
-					((p6<0&&p2>0) || (p6>0&&p2<0)) ||
-					((p1<0&&p5>0) || (p1>0&&p5<0))
-				  )
-					image_r[i*width+j]=255;
-
-
-			}
-
-		}
+		patch[x*width+y] = color;
+		if(p0==255)
+			dfs(x, y+1, width, patch, color);
+		if(p1==255)
+			dfs(x-1, y+1, width, patch, color);
+		if(p2==255)
+			dfs(x-1, y, width, patch, color);
+		if(p3==255)
+			dfs(x-1, y-1, width, patch, color);
+		if(p4==255)
+			dfs(x, y+1, width, patch, color);
+		if(p5==255)
+			dfs(x+1, y-1, width, patch, color);
+		if(p6==255)
+			dfs(x+1, y, width, patch, color);
+		if(p7==255)
+			dfs(x+1, y+1, width, patch, color);
 	}
+
 }
 
+void conn_label(int width, int height, unsigned char* image)
+{
+	int x=0, y=0;
+	int gradient=30, count=0;
+	char filename[256]={};
+	for(x=0; x<height; x++)
+	{
+		for(y=0; y<width; y++)
+		{
+			if((x-1)<0 || (y-1)<0 || (x+1)>=(height) || (y+1) >= (width))
+				continue;
+
+			if(image[x*width+y] == 255)
+			{
+				dfs(x, y, width, image, gradient);
+				count++;
+				gradient+=25;
+				sprintf(filename, "conn_label_%d.pgm", gradient);
+				write_pgm_image(filename, Size, Size, image);
+			}
+		}
+	}
+
+	fprintf(stderr, "count=%d\n", count);
+	paint_histogram( width, height, image, "conn_label_histogram.pgm");
+}
 
 int main(int argc, char** argv)
 {
@@ -730,96 +237,58 @@ int main(int argc, char** argv)
 	fread(Imagedata, sizeof(unsigned char), Size*Size, file);
 	fclose(file);
 
+
+	int i=0;
+	for(i=0; i<Size*Size; i++)
+	{
+		if(Imagedata[i]>128)
+			Imagedata[i]=255;
+		else
+			Imagedata[i]=0;
+	}
 	/* save the original image for comparision */
 	write_pgm_image("sample1.pgm", Size, Size, Imagedata);
 
 
-	unsigned char canny_1[Size*Size] = {};
-	gaussian_filter(5, Size, Size, Imagedata, canny_1);
-	write_pgm_image("canny_1.pgm", Size, Size, canny_1);
+	unsigned char tmp[Size*Size] = {};
+	unsigned char ero[Size*Size] = {};
+	unsigned char ero2[Size*Size] = {};
+	erosion(Size, Size, Imagedata, ero, 1);
+	erosion(Size, Size, ero, ero2, 1);
+	int iter=30;
+	while(iter>0)
+	{
+		memcpy(tmp, ero2, sizeof(ero2));
+		memset(ero2, 0, sizeof(ero2));
+		erosion(Size, Size, tmp, ero2, 1);
+		iter--;
+	}
+	write_pgm_image("erosion.pgm", Size, Size, ero);
+	write_pgm_image("erosion2.pgm", Size, Size, ero2);
 
-	/* canny_1 is gaussian of original image */
+	int z=0, circle=0;
+	for(z=0; z<Size*Size; z++)
+	{
+		if(ero2[z]>0)
+			circle++;
+	}
 
-	unsigned char canny_21[Size*Size] = {};
-	int row_v[Size*Size] = {};
-	int col_v[Size*Size] = {};
-	row_gradient(Size, Size, canny_1, canny_21, row_v);
-	write_pgm_image("canny_21.pgm", Size, Size, canny_21);
+	fprintf(stderr, "circle=%d\n", circle);
 
-	unsigned char canny_22[Size*Size] = {};
-	column_gradient(Size, Size, canny_1, canny_22, col_v);
-	write_pgm_image("canny_22.pgm", Size, Size, canny_22);
-	
-	unsigned char canny_2[Size*Size] = {};
-	gradient(Size, Size, row_v, col_v, canny_2);
-	write_pgm_image("canny_2.pgm", Size, Size, canny_2);
+	unsigned char dil[Size*Size] = {};
+	erosion(Size, Size, Imagedata, dil, 0);
+	write_pgm_image("dilation.pgm", Size, Size, dil);
 
-	/*
-	 * canny_2 is sobel edge detection.
-	 */
+	unsigned char edge[Size*Size] = {};
+	for(i=0; i<Size*Size; i++)
+		edge[i] = Imagedata[i]-ero[i];
+	write_pgm_image("edge.pgm", Size, Size, edge);
 
-	int atan[Size*Size] = {};
-	orientation(Size, Size, row_v, col_v, atan);
+	unsigned char conn[Size*Size]={};
+	memcpy(conn, Imagedata, sizeof(Imagedata));
+	conn_label(Size, Size, conn);
+	write_pgm_image("connected.pgm", Size, Size, conn);
 
-	unsigned char canny_3[Size*Size]={};
-	supress(Size, Size, atan, canny_2, canny_3);
-	write_pgm_image("canny_3.pgm", Size, Size, canny_3);
-
-	unsigned char canny_4[Size*Size]={};
-	unsigned char canny_41[Size*Size]={};
-	unsigned char canny_42[Size*Size]={};
-	memcpy(canny_4, canny_3, sizeof(canny_3));
-	memcpy(canny_41, canny_3, sizeof(canny_3));
-	memcpy(canny_42, canny_3, sizeof(canny_3));
-
-	double_thresholding(Size, Size, canny_4, 17, 5);
-	write_pgm_image("canny_4.pgm", Size, Size, canny_4);
-
-	double_thresholding(Size, Size, canny_41, 34, 15);
-	write_pgm_image("canny_41.pgm", Size, Size, canny_41);
-
-	double_thresholding(Size, Size, canny_42, 8, 1);
-	write_pgm_image("canny_42.pgm", Size, Size, canny_42);
-
-
-	unsigned char canny_5[Size*Size]={};
-	unsigned char canny_51[Size*Size]={};
-	unsigned char canny_52[Size*Size]={};
-	memcpy(canny_5, canny_4, sizeof(canny_4));
-	memcpy(canny_51, canny_41, sizeof(canny_41));
-	memcpy(canny_52, canny_42, sizeof(canny_42));
-	connected(Size, Size, canny_5);
-	write_pgm_image("canny_5.pgm", Size, Size, canny_5);
-	connected(Size, Size, canny_51);
-	write_pgm_image("canny_51.pgm", Size, Size, canny_51);
-	connected(Size, Size, canny_52);
-	write_pgm_image("canny_52.pgm", Size, Size, canny_52);
-
-	unsigned char lap[Size*Size]={};
-	int val_t[Size*Size]={};
-	laplacian(5, Size, Size, canny_1, lap, val_t);
-	write_pgm_image("lap.pgm", Size, Size, lap);
-	paint_histogram(Size, Size, lap, "histo_lap.pgm");
-
-	unsigned char lap2[Size*Size]={};
-	thresh_lap(Size, Size, lap, lap2, 207, 175);
-	write_pgm_image("lap2.pgm", Size, Size, lap2);
-	thresh_lap(Size, Size, lap, lap2, 206, 176);
-	write_pgm_image("lap21.pgm", Size, Size, lap2);
-	thresh_lap(Size, Size, lap, lap2, 205, 177);
-	write_pgm_image("lap22.pgm", Size, Size, lap2);
-	thresh_lap(Size, Size, lap, lap2, 204, 178);
-	write_pgm_image("lap23.pgm", Size, Size, lap2);
-	thresh_lap(Size, Size, lap, lap2, 200, 181);
-	write_pgm_image("lap25.pgm", Size, Size, lap2);
-	thresh_lap(Size, Size, lap, lap2, 198, 183);
-	write_pgm_image("lap26.pgm", Size, Size, lap2);
-	thresh_lap(Size, Size, lap, lap2, 202, 179);
-	write_pgm_image("lap24.pgm", Size, Size, lap2);
-
-	unsigned char lap3[Size*Size]={};
-	zero_crossing(Size, Size, val_t, lap2, lap3);
-	write_pgm_image("lap3.pgm", Size, Size, lap3);
 
 	exit(0);
 	return 0;
